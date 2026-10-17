@@ -14,3 +14,6 @@ __pycache__/
 
 # FlexIndex reference data (downloaded from FlexPower, not ours to publish)
 flexindex_*.csv
+
+# Price data (recreate with download_prices.py)
+prices_de_lu_15min.csv
