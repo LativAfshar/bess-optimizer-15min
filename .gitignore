@@ -1,0 +1,16 @@
+# Python virtual environment
+.venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Jupyter autosave copies
+.ipynb_checkpoints/
+
+# Local editor and tool settings
+.vscode/
+.claude/
+
+# FlexIndex reference data (downloaded from FlexPower, not ours to publish)
+flexindex_*.csv

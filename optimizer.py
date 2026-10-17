@@ -15,7 +15,7 @@ class optimizer:
         Note that you have to install the GLPK solver on your machine to run the optimization model.
         It is available here: https://www.gnu.org/software/glpk/
         """
-        return pyo.SolverFactory("glpk", executable=self.solverpath_exe)
+        return pyo.SolverFactory("appsi_highs")
 
     def step1_optimize_daa(self, n_cycles: int, energy_cap: int, power_cap: int, daa_price_vector: list):
         """
