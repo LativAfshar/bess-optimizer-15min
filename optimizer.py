@@ -1,3 +1,5 @@
+# Modified 2026-10-17 by Lativ Afshar: solver switched to HiGHS (line 20),
+# new parameter hourly_blocks in step1_optimize_daa. Original: github.com/FlexPwr/bess-optimizer (GPL-3.0)
 import os
 import numpy as np
 import math
@@ -17,7 +19,7 @@ class optimizer:
         """
         return pyo.SolverFactory("appsi_highs")
 
-    def step1_optimize_daa(self, n_cycles: int, energy_cap: int, power_cap: int, daa_price_vector: list):
+    def step1_optimize_daa(self, n_cycles: int, energy_cap: int, power_cap: int, daa_price_vector: list, hourly_blocks: bool = True):
         """
         Calculates optimal charge/discharge schedule on the day-ahead auction (daa) for a given 96-d daa_price_vector.
 
@@ -26,6 +28,7 @@ class optimizer:
         - energy_cap: Energy capacity
         - power_cap: Power capacity
         - daa_price_vector: 96-dimensional daa price vector
+        - hourly_blocks: True = same position in all 4 quarters of an hour (original), False = free 15-min positions
 
         Returns:
         - step1_soc_daa: Resulting state of charge schedule
@@ -162,18 +165,20 @@ class optimizer:
         model.charge_cycle_limit = pyo.Constraint(rule=charge_cycle_limit)
         model.discharge_cycle_limit = pyo.Constraint(
             rule=discharge_cycle_limit)
-        model.cha_daa_quarters_1_2_parity = pyo.Constraint(
-            model.H, rule=cha_daa_quarters_1_2_parity)
-        model.cha_daa_quarters_2_3_parity = pyo.Constraint(
-            model.H, rule=cha_daa_quarters_2_3_parity)
-        model.cha_daa_quarters_3_4_parity = pyo.Constraint(
-            model.H, rule=cha_daa_quarters_3_4_parity)
-        model.dis_daa_quarters_1_2_parity = pyo.Constraint(
-            model.H, rule=dis_daa_quarters_1_2_parity)
-        model.dis_daa_quarters_2_3_parity = pyo.Constraint(
-            model.H, rule=dis_daa_quarters_2_3_parity)
-        model.dis_daa_quarters_3_4_parity = pyo.Constraint(
-            model.H, rule=dis_daa_quarters_3_4_parity)
+        # only add the hourly block constraints 1.8/1.9 if hourly_blocks is True (DA is 15 min since 1 Oct 2025)
+        if hourly_blocks:
+            model.cha_daa_quarters_1_2_parity = pyo.Constraint(
+                model.H, rule=cha_daa_quarters_1_2_parity)
+            model.cha_daa_quarters_2_3_parity = pyo.Constraint(
+                model.H, rule=cha_daa_quarters_2_3_parity)
+            model.cha_daa_quarters_3_4_parity = pyo.Constraint(
+                model.H, rule=cha_daa_quarters_3_4_parity)
+            model.dis_daa_quarters_1_2_parity = pyo.Constraint(
+                model.H, rule=dis_daa_quarters_1_2_parity)
+            model.dis_daa_quarters_2_3_parity = pyo.Constraint(
+                model.H, rule=dis_daa_quarters_2_3_parity)
+            model.dis_daa_quarters_3_4_parity = pyo.Constraint(
+                model.H, rule=dis_daa_quarters_3_4_parity)
 
         # Define objective function and solve the optimization problem.
         # The objective is to maximize revenue from DA Auction trades over all possible charge-discharge schedules.

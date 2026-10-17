@@ -21,15 +21,25 @@ for date, day in prices.groupby("date"):
     if len(price_list) != 96:
         print("Skipped", date, "with", len(price_list), "quarter-hours")
         continue
-    # optimize the day with the original model (hourly blocks) and save the revenue
-    soc, cha, dis, profit = opt.step1_optimize_daa(
-        n_cycles=N_CYCLES, energy_cap=ENERGY_CAP, power_cap=POWER_CAP, daa_price_vector=price_list)
-    results.append({"date": date, "revenue_hourly": profit})
+    # optimize the same day twice: with hourly blocks (original) and with free 15-min positions
+    soc, cha, dis, profit_hourly = opt.step1_optimize_daa(
+        n_cycles=N_CYCLES, energy_cap=ENERGY_CAP, power_cap=POWER_CAP, daa_price_vector=price_list,
+        hourly_blocks=True)
+    soc, cha, dis, profit_15min = opt.step1_optimize_daa(
+        n_cycles=N_CYCLES, energy_cap=ENERGY_CAP, power_cap=POWER_CAP, daa_price_vector=price_list,
+        hourly_blocks=False)
+    results.append({"date": date, "revenue_hourly": profit_hourly, "revenue_15min": profit_15min})
 
 # save the results as CSV and print them, annualised = mean per day * 365 because 2 days are missing
 results = pd.DataFrame(results)
 results.to_csv("results_daily.csv", index=False)
 
+hourly_year = results["revenue_hourly"].mean() * 365
+min15_year = results["revenue_15min"].mean() * 365
+
 print("Days:", len(results))
-print("Sum over all days:", round(results["revenue_hourly"].sum()), "EUR")
-print("Annualised (mean * 365):", round(results["revenue_hourly"].mean() * 365), "EUR/MW/year")
+print("Hourly blocks (mean * 365):", round(hourly_year), "EUR/MW/year")
+print("15 min (mean * 365):       ", round(min15_year), "EUR/MW/year")
+print("Difference:", round(min15_year - hourly_year), "EUR/MW/year =", round((min15_year / hourly_year - 1) * 100, 1), "%")
+# check: 15 min should never be worse than hourly blocks (small tolerance for solver rounding)
+print("Days where 15 min is worse:", (results["revenue_15min"] < results["revenue_hourly"] - 0.000001).sum())
